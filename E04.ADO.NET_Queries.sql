@@ -20,3 +20,35 @@ LEFT JOIN [Minions] AS [m]
        ON [m].[Id] = [mv].[MinionId]
 	WHERE [mv].VillainId = 1
  ORDER BY [m].[Name]
+
+--Problem 4
+SELECT [Id]
+  FROM [Towns]
+ WHERE [Name] = 'Grubenfan'
+
+INSERT INTO [Towns]([Name])
+     VALUES
+('Name')
+
+SELECT [Id]
+  FROM [Villains]
+ WHERE [Name] = 'Gru'
+
+SELECT *
+  FROM [EvilnessFactors] -- Level 'Evil' is with Id 4
+
+INSERT INTO [Villains]([Name], [EvilnessFactorId])
+     VALUES
+('Name', 4)
+
+INSERT INTO [Minions]([Name], [Age], [TownId])
+     VALUES
+('Name', 10, 1)
+
+SELECT [Id]
+  FROM [Minions]
+ WHERE [Name] = 'Name' AND [Age] = 10 AND TownId = 1
+
+INSERT INTO [MinionsVillains]([MinionId], [VillainId])
+     VALUES
+(1, 1)
