@@ -17,19 +17,30 @@
             sqlConnection.Open();
 
 
-            //string result = GetVillainNamesWithMinionsCount(sqlConnection);   --Problem 2
-            //string result = GetVillainWithMinions(sqlConnection, enteredId);  --Problem 3
-            string[] minionInfo = Console.ReadLine()
-                .Split(" ", StringSplitOptions.RemoveEmptyEntries);
-            string minionName = minionInfo[1];
-            int minionAge = int.Parse(minionInfo[2]);
-            string townName = minionInfo[3];
+            //string result = GetVillainNamesWithMinionsCount(sqlConnection);                               --Problem 2
 
-            string villainName = Console.ReadLine()
-                .Split(" ", StringSplitOptions.RemoveEmptyEntries)
-                [1];
+            //string result = GetVillainWithMinions(sqlConnection, enteredId);                              --Problem 3
 
-            string result = AddMinion(sqlConnection, townName, villainName, minionName, minionAge);
+            //string[] minionInfo = Console.ReadLine()
+            //    .Split(" ", StringSplitOptions.RemoveEmptyEntries);
+            //string minionName = minionInfo[1];
+            //int minionAge = int.Parse(minionInfo[2]);
+            //string townName = minionInfo[3];
+
+            //string villainName = Console.ReadLine()
+            //    .Split(" ", StringSplitOptions.RemoveEmptyEntries)
+            //    [1];
+
+            //string result = AddMinion(sqlConnection, townName, villainName, minionName, minionAge);       --Problem 4
+
+            //string countryName = Console.ReadLine();
+            //string result = ChangeTownNameCasing(sqlConnection, countryName);                             --Problem 5
+
+            //int villainId = int.Parse(Console.ReadLine());
+            //string result = RemoveVillain(sqlConnection, villainId);                                      --Problem 6
+
+            int minionId = int.Parse(Console.ReadLine());
+            string result = IncreaseMinionAge(sqlConnection, minionId);
             Console.WriteLine(result);
 
             sqlConnection.Close();
@@ -271,6 +282,194 @@
             int minionId = (int)getMinionQueryCmd.ExecuteScalar();
 
             return minionId;
+        }
+
+        //Problem 5
+        private static string ChangeTownNameCasing(SqlConnection sqlConnection, string countryName)
+        {
+            StringBuilder output = new StringBuilder();
+
+            string getCountryIdQuery = @"SELECT [Id]
+                                           FROM [Countries]
+                                          WHERE [Name] = @CountryName";
+
+            SqlCommand getContryIdCmd 
+                = new SqlCommand(getCountryIdQuery, sqlConnection);
+
+            getContryIdCmd
+                .Parameters.AddWithValue("@CountryName", countryName);
+
+            object countryId = getContryIdCmd.ExecuteScalar();
+
+            if (countryId == null)
+            {
+                return "No town names were affected.";
+            }
+
+            SqlTransaction sqlTransaction = sqlConnection.BeginTransaction();
+
+            try
+            {
+                string updateTownCasingQuery = @"UPDATE [Towns]
+                                                    SET [Name] = UPPER([Name])
+                                                  WHERE [CountryCode] = @CountryId";
+
+                SqlCommand updateTownCasingCmd 
+                    = new SqlCommand(updateTownCasingQuery, sqlConnection, sqlTransaction);
+
+                updateTownCasingCmd
+                    .Parameters.AddWithValue("@CountryId", (int)countryId);
+
+                int updatedTowns = updateTownCasingCmd.ExecuteNonQuery();
+                output.AppendLine($"{updatedTowns} town names were affected.");
+
+                sqlTransaction.Commit();
+            }
+            catch (Exception e)
+            {
+                sqlTransaction.Rollback();
+                return e.Message;
+            }
+
+            string getTownNamesQuery = @"SELECT [Name]
+                                           FROM [Towns]
+                                          WHERE [CountryCode] = @CountryId";
+
+            SqlCommand getTownNamesCmd 
+                = new SqlCommand(getTownNamesQuery, sqlConnection);
+
+            getTownNamesCmd
+                .Parameters.AddWithValue("@CountryId", (int)countryId);
+
+            using SqlDataReader reader = getTownNamesCmd.ExecuteReader();
+            output.Append("[ ");
+
+            int i = 1;
+
+            while (reader.Read())
+            {
+                output.Append($"{reader["Name"]} ");
+                i++;
+            }
+
+            reader.Close();
+
+            output.AppendLine("]");
+
+            return output.ToString().TrimEnd();
+        }
+
+        //Problem 6
+        private static string RemoveVillain(SqlConnection sqlConnection, int villainId)
+        {
+            StringBuilder output = new StringBuilder();
+
+            string getVillainNameQuery = @"SELECT [Name]
+                                             FROM [Villains]
+                                            WHERE [Id] = @VillainId";
+
+            SqlCommand getVillainNameCmd
+                = new SqlCommand(getVillainNameQuery, sqlConnection);
+
+            getVillainNameCmd
+                .Parameters.AddWithValue("@VillainId", villainId);
+
+            string villainName = (string)getVillainNameCmd.ExecuteScalar();
+
+            if (villainName == null)
+            {
+                return $"No such villain was found.";
+            }
+
+            SqlTransaction sqlTransaction = sqlConnection.BeginTransaction();
+
+            try
+            {
+                string releaseMinionsQuery = @"DELETE FROM [MinionsVillains]
+                                                     WHERE [VillainId] = @VillainId";
+
+                SqlCommand releaseMinionsCmd
+                    = new SqlCommand(releaseMinionsQuery, sqlConnection, sqlTransaction);
+
+                releaseMinionsCmd
+                    .Parameters.AddWithValue("@VillainId", villainId);
+
+                int releasedMinions = releaseMinionsCmd.ExecuteNonQuery();
+
+                string deleteVillainQuery = @"DELETE FROM [Villains]
+                                                    WHERE [Id] = @VillainId";
+
+                SqlCommand deleteVillainCmd
+                    = new SqlCommand(deleteVillainQuery, sqlConnection, sqlTransaction);
+
+                deleteVillainCmd
+                    .Parameters.AddWithValue("@VillainId", villainId);
+
+                deleteVillainCmd.ExecuteNonQuery();
+
+                sqlTransaction.Commit();
+
+                output
+                    .AppendLine($"{villainName} was deleted.")
+                    .AppendLine($"{releasedMinions} minions were released.");
+
+            }
+            catch (Exception e)
+            {
+                sqlTransaction.Rollback();
+                return e.Message;
+            }
+
+            return output.ToString().TrimEnd();
+        }
+
+        //Problem 9
+        private static string IncreaseMinionAge(SqlConnection sqlConnection, int minionId)
+        {
+            StringBuilder output = new StringBuilder();
+            SqlTransaction sqlTransaction = sqlConnection.BeginTransaction();
+
+            try
+            {
+                string executeProcedureQuery = @"EXEC [dbo].[usp_GetOlder] @MinionId";
+
+                SqlCommand executeProcedureCmd
+                    = new SqlCommand(executeProcedureQuery, sqlConnection, sqlTransaction);
+
+                executeProcedureCmd
+                    .Parameters.AddWithValue("@MinionId", minionId);
+
+                executeProcedureCmd.ExecuteNonQuery();
+
+                string getMinionInfoQuery = @"SELECT CONCAT([Name], ' - ', [Age], ' years old')
+                                                  AS [Output]
+                                                FROM [Minions]
+                                               WHERE [Id] = @MinionId";
+
+                SqlCommand getMinionInfoCmd
+                    = new SqlCommand(getMinionInfoQuery, sqlConnection, sqlTransaction);
+
+                getMinionInfoCmd
+                    .Parameters.AddWithValue("@MinionId", minionId);
+
+                using SqlDataReader reader = getMinionInfoCmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    output.AppendLine($"{reader["Output"]}");
+                }
+
+                reader.Close();
+
+                sqlTransaction.Commit();
+            }
+            catch (Exception e)
+            {
+                sqlTransaction.Rollback();
+                return e.Message;
+            }
+
+            return output.ToString().TrimEnd();
         }
     }
 }

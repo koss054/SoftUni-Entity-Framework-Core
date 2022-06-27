@@ -52,3 +52,45 @@ SELECT [Id]
 INSERT INTO [MinionsVillains]([MinionId], [VillainId])
      VALUES
 (1, 1)
+
+--Problem 5
+SELECT [Id]
+  FROM [Countries]
+ WHERE [Name] = 'Bulgaria'
+
+UPDATE [Towns]
+   SET [Name] = UPPER([Name])
+ WHERE [CountryCode] = 1
+
+SELECT [Name]
+  FROM [Towns]
+ WHERE [CountryCode] = 1
+
+--Problem 6
+SELECT [Name]
+  FROM [Villains]
+ WHERE [Id] = 1
+
+DELETE FROM [MinionsVillains]
+      WHERE [VillainId] = 1
+
+DELETE FROM [Villains]
+      WHERE [Id] = 1
+
+--Problem 9
+GO
+
+CREATE PROCEDURE [usp_GetOlder] @minionId INT
+AS
+	UPDATE [Minions]
+	   SET [Age] += 1
+	 WHERE [Id] = @minionId
+
+GO
+
+EXEC [dbo].[usp_GetOlder] 1
+
+SELECT CONCAT([Name], ' - ', [Age], ' years old')
+    AS [Output]
+  FROM [Minions]
+ WHERE [Id] = 1
