@@ -22,9 +22,11 @@ namespace SoftUni
             // Console.WriteLine(GetEmployee147(dbContext));                                    - Exercise 9
             // Console.WriteLine(GetDepartmentsWithMoreThan5Employees(dbContext));              - Exercise 10
             // Console.WriteLine(GetLatestProjects(dbContext));                                 - Exercise 11
-            Console.WriteLine(IncreaseSalaries(dbContext));
+            // Console.WriteLine(IncreaseSalaries(dbContext));                                  - Exercise 12
+            // Console.WriteLine(GetEmployeesByFirstNameStartingWithSa(dbContext));             - Exercise 13
+            // Console.WriteLine(DeleteProjectById(dbContext));                                 - Exercise 14
+            Console.WriteLine(RemoveTown(dbContext));
         }
-
         public static string GetEmployeesFullInformation(SoftUniContext context)
         {
             StringBuilder output = new StringBuilder();
@@ -316,6 +318,102 @@ namespace SoftUni
             }
 
             return output.ToString().TrimEnd();
+        }
+
+        public static string GetEmployeesByFirstNameStartingWithSa(SoftUniContext context)
+        {
+            StringBuilder output = new StringBuilder();
+
+            var employees = context
+                .Employees
+                .Where(e => e.FirstName.StartsWith("Sa") ||
+                            e.FirstName.StartsWith("sa") ||
+                            e.FirstName.StartsWith("sA") ||
+                            e.FirstName.StartsWith("SA"))
+                .Select(e => new
+                {
+                    e.FirstName,
+                    e.LastName,
+                    e.JobTitle,
+                    e.Salary
+                })
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .ToArray();
+
+            foreach (var e in employees)
+            {
+                output.AppendLine($"{e.FirstName} {e.LastName} - {e.JobTitle} - (${e.Salary:F2})");
+            }
+
+            return output.ToString().TrimEnd();
+        }
+
+        public static string DeleteProjectById(SoftUniContext context)
+        {
+            StringBuilder output = new StringBuilder();
+
+            var projectToDelete = context
+                .Projects
+                .Find(2);
+
+            var refferedEmployees = context
+                .EmployeesProjects
+                .Where(ep => ep.ProjectId == projectToDelete.ProjectId)
+                .ToArray();
+
+            context.EmployeesProjects.RemoveRange(refferedEmployees);
+            context.Projects.Remove(projectToDelete);
+            context.SaveChanges();
+
+            var projects = context
+                .Projects
+                .Take(10)
+                .Select(p => new
+                {
+                    ProjectName = p.Name
+                })
+                .ToArray();
+
+            foreach (var p in projects)
+            {
+                output.AppendLine($"{p.ProjectName}");
+            }
+
+            return output.ToString().TrimEnd();
+        }
+
+        public static string RemoveTown(SoftUniContext context)
+        {
+            var townToDelete = context
+                .Towns
+                .First(t => t.Name == "Seattle");
+
+            var addressessToDelete = context
+                .Addresses
+                .Where(a => a.Town.Name == townToDelete.Name);
+
+            var refferedEmployees = context
+                .Employees
+                .Where(e => addressessToDelete.Any(a => a.AddressId == e.AddressId));
+
+            foreach (var e in refferedEmployees)
+            {
+                e.AddressId = null;
+            }
+
+            int deletedAddressesCount = 0;
+
+            foreach (var a in addressessToDelete)
+            {
+                context.Addresses.Remove(a);
+                deletedAddressesCount++;
+            }
+
+            context.Towns.Remove(townToDelete);
+            context.SaveChanges();
+
+            return $"{deletedAddressesCount} addresses in Seattle were deleted";
         }
     }
 }
