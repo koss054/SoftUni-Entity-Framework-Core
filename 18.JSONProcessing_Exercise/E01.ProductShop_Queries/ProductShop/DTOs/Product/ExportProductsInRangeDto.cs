@@ -2,7 +2,6 @@
 {
     using Newtonsoft.Json;
 
-    /*
     [JsonObject]
     public class ExportProductsInRangeDto
     {
@@ -15,5 +14,4 @@
         [JsonProperty("seller")]
         public string SellerFullName { get; set; }
     }
-    */
 }

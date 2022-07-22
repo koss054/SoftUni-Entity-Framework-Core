@@ -4,8 +4,6 @@
 
     using Newtonsoft.Json;
 
-    /*
-    [JsonObject]
     public class ExportUsersWithSoldProductsDto
     {
         [JsonProperty("firstName")]
@@ -17,5 +15,4 @@
         [JsonProperty("soldProducts")]
         public ExportUserSoldProductsDto[] SoldProducts { get; set; }
     }
-    */
 }
